@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ESP32-C3 LED Panel</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { font-family: -apple-system, sans-serif; text-align: center; padding: 20px; background: #121212; color: white; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; max-width: 400px; margin: 20px auto; }
+        .card { background: #1e1e1e; padding: 15px; border-radius: 12px; border: 1px solid #333; }
+        button { width: 100%; padding: 12px; margin-top: 5px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
+        .btn-on { background: #28a745; color: white; }
+        .btn-off { background: #dc3545; color: white; }
+        #connectBtn { background: #007bff; padding: 15px 30px; font-size: 18px; border-radius: 50px; }
+    </style>
+</head>
+<body>
+    <h1>LED Controller</h1>
+    <button id="connectBtn" onclick="connectBLE()">Connect to ESP32</button>
+
+    <div class="grid" id="controls" style="display:none;">
+        <script>
+            let ledChar;
+            async function connectBLE() {
+                try {
+                    const device = await navigator.bluetooth.requestDevice({
+                        filters: [{ name: 'ESP32-C3-LED-Controller' }],
+                        optionalServices: ['6e400001-b5a3-f393-e0a9-e50e24dcca9e']
+                    });
+                    const server = await device.gatt.connect();
+                    const service = await server.getPrimaryService('6e400001-b5a3-f393-e0a9-e50e24dcca9e');
+                    ledChar = await service.getCharacteristic('6e400002-b5a3-f393-e0a9-e50e24dcca9e');
+                    document.getElementById('controls').style.display = 'grid';
+                    document.getElementById('connectBtn').style.display = 'none';
+                } catch (e) { alert("Error: " + e); }
+            }
+
+            async function send(data) {
+                if (ledChar) {
+                    await ledChar.writeValue(new TextEncoder().encode(data));
+                }
+            }
+
+            for(let i=1; i<=8; i++) {
+                document.write(`
+                    <div class="card">
+                        <div style="margin-bottom:10px">LED ${i}</div>
+                        <button class="btn-on" onclick="send('${i}N')">ON</button>
+                        <button class="btn-off" onclick="send('${i}F')">OFF</button>
+                    </div>
+                `);
+            }
+        </script>
+    </div>
+</body>
+</html>
