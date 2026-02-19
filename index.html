@@ -10,6 +10,7 @@
         button { width: 100%; padding: 12px; margin-top: 5px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
         .btn-on { background: #28a745; color: white; }
         .btn-off { background: #dc3545; color: white; }
+        #all-off { background: #6c757d; color: white; grid-column: span 2; margin-top: 10px; font-size: 16px; }
         #connectBtn { background: #007bff; padding: 15px 30px; font-size: 18px; border-radius: 50px; }
     </style>
 </head>
@@ -18,38 +19,72 @@
     <button id="connectBtn" onclick="connectBLE()">Connect to ESP32</button>
 
     <div class="grid" id="controls" style="display:none;">
-        <script>
-            let ledChar;
-            async function connectBLE() {
-                try {
-                    const device = await navigator.bluetooth.requestDevice({
-                        filters: [{ name: 'ESP32-C3-LED-Controller' }],
-                        optionalServices: ['6e400001-b5a3-f393-e0a9-e50e24dcca9e']
-                    });
-                    const server = await device.gatt.connect();
-                    const service = await server.getPrimaryService('6e400001-b5a3-f393-e0a9-e50e24dcca9e');
-                    ledChar = await service.getCharacteristic('6e400002-b5a3-f393-e0a9-e50e24dcca9e');
-                    document.getElementById('controls').style.display = 'grid';
-                    document.getElementById('connectBtn').style.display = 'none';
-                } catch (e) { alert("Error: " + e); }
-            }
+        <div class="card">
+            <div style="margin-bottom:10px; color: #ff4d4d;">RED</div>
+            <button class="btn-on" onclick="send('RN')">ON</button>
+            <button class="btn-off" onclick="send('RF')">OFF</button>
+        </div>
 
-            async function send(data) {
-                if (ledChar) {
-                    await ledChar.writeValue(new TextEncoder().encode(data));
-                }
-            }
+        <div class="card">
+            <div style="margin-bottom:10px;">WHITE</div>
+            <button class="btn-on" onclick="send('2N')">ON</button>
+            <button class="btn-off" onclick="send('2F')">OFF</button>
+        </div>
 
-            for(let i=1; i<=8; i++) {
-                document.write(`
-                    <div class="card">
-                        <div style="margin-bottom:10px">LED ${i}</div>
-                        <button class="btn-on" onclick="send('${i}N')">ON</button>
-                        <button class="btn-off" onclick="send('${i}F')">OFF</button>
-                    </div>
-                `);
-            }
-        </script>
+        <div class="card">
+            <div style="margin-bottom:10px; color: #4da6ff;">BLUE</div>
+            <button class="btn-on" onclick="send('3N')">ON</button>
+            <button class="btn-off" onclick="send('3F')">OFF</button>
+        </div>
+
+        <div class="card">
+            <div style="margin-bottom:10px; color: #ffa500;">ORANGE</div>
+            <button class="btn-on" onclick="send('4N')">ON</button>
+            <button class="btn-off" onclick="send('4F')">OFF</button>
+        </div>
+
+        <div class="card">
+            <div style="margin-bottom:10px; color: #ffff00;">YELLOW</div>
+            <button class="btn-on" onclick="send('5N')">ON</button>
+            <button class="btn-off" onclick="send('5F')">OFF</button>
+        </div>
+
+        <div class="card">
+            <div style="margin-bottom:10px; color: #ff69b4;">PINK</div>
+            <button class="btn-on" onclick="send('6N')">ON</button>
+            <button class="btn-off" onclick="send('6F')">OFF</button>
+        </div>
+
+        <div class="card">
+            <div style="margin-bottom:10px; color: #da70d6;">PURPLE</div>
+            <button class="btn-on" onclick="send('7N')">ON</button>
+            <button class="btn-off" onclick="send('7F')">OFF</button>
+        </div>
+
+        <button id="all-off" onclick="send('XA')">TURN ALL OFF</button>
     </div>
+
+    <script>
+        let ledChar;
+        async function connectBLE() {
+            try {
+                const device = await navigator.bluetooth.requestDevice({
+                    filters: [{ name: 'ESP32-C3-LED-Controller' }],
+                    optionalServices: ['6e400001-b5a3-f393-e0a9-e50e24dcca9e']
+                });
+                const server = await device.gatt.connect();
+                const service = await server.getPrimaryService('6e400001-b5a3-f393-e0a9-e50e24dcca9e');
+                ledChar = await service.getCharacteristic('6e400002-b5a3-f393-e0a9-e50e24dcca9e');
+                document.getElementById('controls').style.display = 'grid';
+                document.getElementById('connectBtn').style.display = 'none';
+            } catch (e) { alert("Error: " + e); }
+        }
+
+        async function send(data) {
+            if (ledChar) {
+                await ledChar.writeValue(new TextEncoder().encode(data));
+            }
+        }
+    </script>
 </body>
 </html>
