@@ -1,0 +1,78 @@
+#include <BLEDevice.h>
+#include <BLEServer.h>
+#include <BLEUtils.h>
+#include <BLE2902.h>
+
+// Your GPIO pins: 2, 3, 4, 5, 6, 7, 8, 10
+int ledPins[] = {2, 3, 4, 5, 6, 7, 8, 10};
+const int numLeds = 8;
+
+#define SERVICE_UUID           "6e400001-b5a3-f393-e0a9-e50e24dcca9e"
+#define CHARACTERISTIC_UUID_RX "6e400002-b5a3-f393-e0a9-e50e24dcca9e"
+
+class MyCallbacks: public BLECharacteristicCallbacks {
+    void onWrite(BLECharacteristic *pCharacteristic) {
+        String rxValue = pCharacteristic->getValue().c_str(); 
+        
+        if (rxValue.length() >= 2) {
+            char cmd = rxValue[0];    // Command Type (R, 2, 3, X...)
+            char action = rxValue[1]; // Action (N = On, F = Off, A = All Off)
+
+            // OPTION 1: MASTER OFF (Command: XA)
+            if (cmd == 'X') {
+                for (int i = 0; i < numLeds; i++) {
+                    digitalWrite(ledPins[i], LOW);
+                }
+                Serial.println("All LEDs turned OFF");
+            } 
+            
+            // OPTION 2: RED BUTTON (Turns on Pin 2 AND Pin 3)
+            else if (cmd == 'R') {
+                int state = (action == 'N') ? HIGH : LOW;
+                digitalWrite(ledPins[0], state); // GPIO 2
+                digitalWrite(ledPins[1], state); // GPIO 3
+                Serial.printf("Red Mode: Pins %d & %d set to %s\n", ledPins[0], ledPins[1], action == 'N' ? "HIGH" : "LOW");
+            }
+
+            // OPTION 3: INDIVIDUAL PINS (2-7)
+            else {
+                int ledNum = cmd - '1'; // '2' becomes index 1, etc.
+                if (ledNum >= 0 && ledNum < numLeds) {
+                    int state = (action == 'N') ? HIGH : LOW;
+                    digitalWrite(ledPins[ledNum], state);
+                    Serial.printf("Pin %d set to %s\n", ledPins[ledNum], action == 'N' ? "HIGH" : "LOW");
+                }
+            }
+        }
+    }
+};
+
+void setup() {
+    Serial.begin(115200);
+    
+    // Set all pins as outputs
+    for (int i = 0; i < numLeds; i++) {
+        pinMode(ledPins[i], OUTPUT);
+        digitalWrite(ledPins[i], LOW);
+    }
+
+    // Start BLE
+    BLEDevice::init("ESP32-C3-LED-Controller");
+    BLEServer *pServer = BLEDevice::createServer();
+    BLEService *pService = pServer->createService(SERVICE_UUID);
+    
+    BLECharacteristic *pChar = pService->createCharacteristic(
+                                CHARACTERISTIC_UUID_RX,
+                                BLECharacteristic::PROPERTY_WRITE
+                              );
+                              
+    pChar->setCallbacks(new MyCallbacks());
+    pService->start();
+    pServer->getAdvertising()->start();
+    
+    Serial.println("System Online: Use HTML dashboard to connect.");
+}
+
+void loop() {
+    // BLE logic runs in the background
+}
