@@ -6,12 +6,21 @@
     <style>
         body { font-family: -apple-system, sans-serif; text-align: center; padding: 20px; background: #121212; color: white; }
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; max-width: 400px; margin: 20px auto; }
-        .card { background: #1e1e1e; padding: 15px; border-radius: 12px; border: 1px solid #333; }
-        button { width: 100%; padding: 12px; margin-top: 5px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
-        .btn-on { background: #28a745; color: white; }
-        .btn-off { background: #dc3545; color: white; }
-        #all-off { background: #6c757d; color: white; grid-column: span 2; margin-top: 10px; font-size: 16px; }
-        #connectBtn { background: #007bff; padding: 15px 30px; font-size: 18px; border-radius: 50px; }
+        .card { background: #1e1e1e; padding: 15px; border-radius: 12px; border: 1px solid #333; transition: 0.3s; }
+        
+        /* The Telltale Indicator Style */
+        .card.active { border-color: #28a745; box-shadow: 0 0 10px rgba(40, 167, 69, 0.5); }
+        .card.active .btn-on { background: #2ecc71; box-shadow: 0 0 15px #2ecc71; }
+
+        button { width: 100%; padding: 12px; margin-top: 5px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; opacity: 0.6; }
+        .btn-on { background: #1b5e20; color: white; }
+        .btn-off { background: #dc3545; color: white; opacity: 1; }
+        
+        /* Highlight active ON buttons */
+        .active-on { opacity: 1 !important; }
+
+        #all-off { background: #6c757d; color: white; grid-column: span 2; margin-top: 10px; font-size: 16px; opacity: 1; }
+        #connectBtn { background: #007bff; padding: 15px 30px; font-size: 18px; border-radius: 50px; opacity: 1; }
     </style>
 </head>
 <body>
@@ -19,53 +28,54 @@
     <button id="connectBtn" onclick="connectBLE()">Connect to ESP32</button>
 
     <div class="grid" id="controls" style="display:none;">
-        <div class="card">
+        <div class="card" id="card-R">
             <div style="margin-bottom:10px; color: #ff4d4d;">RED</div>
-            <button class="btn-on" onclick="send('RN')">ON</button>
-            <button class="btn-off" onclick="send('RF')">OFF</button>
+            <button class="btn-on" id="on-R" onclick="updateUI('R', 'N')">ON</button>
+            <button class="btn-off" onclick="updateUI('R', 'F')">OFF</button>
         </div>
 
-        <div class="card">
+        <div class="card" id="card-2">
             <div style="margin-bottom:10px;">WHITE</div>
-            <button class="btn-on" onclick="send('2N')">ON</button>
-            <button class="btn-off" onclick="send('2F')">OFF</button>
+            <button class="btn-on" id="on-2" onclick="updateUI('2', 'N')">ON</button>
+            <button class="btn-off" onclick="updateUI('2', 'F')">OFF</button>
         </div>
 
-        <div class="card">
+        <div class="card" id="card-3">
             <div style="margin-bottom:10px; color: #4da6ff;">BLUE</div>
-            <button class="btn-on" onclick="send('3N')">ON</button>
-            <button class="btn-off" onclick="send('3F')">OFF</button>
+            <button class="btn-on" id="on-3" onclick="updateUI('3', 'N')">ON</button>
+            <button class="btn-off" onclick="updateUI('3', 'F')">OFF</button>
         </div>
 
-        <div class="card">
+        <div class="card" id="card-4">
             <div style="margin-bottom:10px; color: #ffa500;">ORANGE</div>
-            <button class="btn-on" onclick="send('4N')">ON</button>
-            <button class="btn-off" onclick="send('4F')">OFF</button>
+            <button class="btn-on" id="on-4" onclick="updateUI('4', 'N')">ON</button>
+            <button class="btn-off" onclick="updateUI('4', 'F')">OFF</button>
         </div>
 
-        <div class="card">
+        <div class="card" id="card-5">
             <div style="margin-bottom:10px; color: #ffff00;">YELLOW</div>
-            <button class="btn-on" onclick="send('5N')">ON</button>
-            <button class="btn-off" onclick="send('5F')">OFF</button>
+            <button class="btn-on" id="on-5" onclick="updateUI('5', 'N')">ON</button>
+            <button class="btn-off" onclick="updateUI('5', 'F')">OFF</button>
         </div>
 
-        <div class="card">
+        <div class="card" id="card-6">
             <div style="margin-bottom:10px; color: #ff69b4;">PINK</div>
-            <button class="btn-on" onclick="send('6N')">ON</button>
-            <button class="btn-off" onclick="send('6F')">OFF</button>
+            <button class="btn-on" id="on-6" onclick="updateUI('6', 'N')">ON</button>
+            <button class="btn-off" onclick="updateUI('6', 'F')">OFF</button>
         </div>
 
-        <div class="card">
+        <div class="card" id="card-7">
             <div style="margin-bottom:10px; color: #da70d6;">PURPLE</div>
-            <button class="btn-on" onclick="send('7N')">ON</button>
-            <button class="btn-off" onclick="send('7F')">OFF</button>
+            <button class="btn-on" id="on-7" onclick="updateUI('7', 'N')">ON</button>
+            <button class="btn-off" onclick="updateUI('7', 'F')">OFF</button>
         </div>
 
-        <button id="all-off" onclick="send('XA')">TURN ALL OFF</button>
+        <button id="all-off" onclick="updateUI('X', 'A')">TURN ALL OFF</button>
     </div>
 
     <script>
         let ledChar;
+
         async function connectBLE() {
             try {
                 const device = await navigator.bluetooth.requestDevice({
@@ -80,9 +90,28 @@
             } catch (e) { alert("Error: " + e); }
         }
 
-        async function send(data) {
+        async function updateUI(id, action) {
+            // 1. Send the Bluetooth command
+            const cmd = id + action;
             if (ledChar) {
-                await ledChar.writeValue(new TextEncoder().encode(data));
+                await ledChar.writeValue(new TextEncoder().encode(cmd));
+            }
+
+            // 2. Update the visual "Telltale"
+            if (id === 'X') {
+                // Turn off all indicators
+                document.querySelectorAll('.card').forEach(c => c.classList.remove('active'));
+                document.querySelectorAll('.btn-on').forEach(b => b.classList.remove('active-on'));
+            } else {
+                const card = document.getElementById('card-' + id);
+                const btn = document.getElementById('on-' + id);
+                if (action === 'N') {
+                    card.classList.add('active');
+                    btn.classList.add('active-on');
+                } else {
+                    card.classList.remove('active');
+                    btn.classList.remove('active-on');
+                }
             }
         }
     </script>
